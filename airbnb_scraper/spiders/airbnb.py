@@ -41,32 +41,34 @@ class AirbnbSpider(scrapy.Spider):
         Returns:
         '''
 
-        url = ('https://www.airbnb.com/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-              '&allow_override%5B%5D=&auto_ib=false&client_session_id='
-              '621cf853-d03e-4108-b717-c14962b6ab8b&currency=CAD&experiences_per_grid=20&fetch_filters=true'
+        url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
+              '&allow_override%5B%5D=&auto_ib=true&checkin=2019-09-20&checkout=2019-09-22&client_session_id='
+              '621cf853-d03e-4108-b717-c14962b6ab8b&currency=EUR&experiences_per_grid=20&fetch_filters=true'
               '&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
               '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
               '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false&'
               'query={2}'
               '&query_understanding_enabled=true&refinement_paths%5B%5D=%2Fhomes&s_tag=QLb9RB7g'
               '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
-              '&timezone_offset=-240&version=1.5.6'                  
+              '&timezone_offset=120&version=1.5.8'                  
               '&price_min={0}&price_max={1}')
         new_url = url.format(self.price_lb, self.price_ub, self.city)
             
 
         if (int(self.price_lb)  >= 990):
-            url = ('https://www.airbnb.com/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-              '&allow_override%5B%5D=&auto_ib=false&client_session_id='
-              '621cf853-d03e-4108-b717-c14962b6ab8b&currency=CAD&experiences_per_grid=20&fetch_filters=true'
+            url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
+              '&allow_override%5B%5D=&auto_ib=true&checkin=2019-09-20&checkout=2019-09-22&client_session_id='
+              '621cf853-d03e-4108-b717-c14962b6ab8b&currency=EUR&experiences_per_grid=20&fetch_filters=true'
               '&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
               '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
               '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false&'
               'query={1}'
               '&query_understanding_enabled=true&refinement_paths%5B%5D=%2Fhomes&s_tag=QLb9RB7g'
               '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
-              '&timezone_offset=-240&version=1.5.6'                  
+              '&timezone_offset=120&version=1.5.8'                  
               '&price_min={0}')
+              
+              
             new_url = url.format(self.price_lb, self.city)
 
         yield scrapy.Request(url=new_url, callback=self.parse_id, dont_filter=True)
@@ -84,7 +86,7 @@ class AirbnbSpider(scrapy.Spider):
         data = json.loads(response.body)
 
         # Return a List of all homes
-        homes = data.get('explore_tabs')[0].get('sections')[0].get('listings')
+        homes = data.get('explore_tabs')[0].get('sections')[1].get('listings')
 
         if homes is None:
             try: 
@@ -144,9 +146,9 @@ class AirbnbSpider(scrapy.Spider):
             items_offset = pagination_metadata.get('items_offset')
             section_offset = pagination_metadata.get('section_offset')
 
-            new_url = ('https://www.airbnb.com/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-                      '&allow_override%5B%5D=&auto_ib=false&client_session_id='
-                      '621cf853-d03e-4108-b717-c14962b6ab8b&currency=CAD&experiences_per_grid=20'
+            new_url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
+                      '&allow_override%5B%5D=&auto_ib=true&checkin=2019-09-20&checkout=2019-09-22&client_session_id='
+                      '621cf853-d03e-4108-b717-c14962b6ab8b&currency=EUR&experiences_per_grid=20'
                       '&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
                       '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
                       '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false'
@@ -154,13 +156,13 @@ class AirbnbSpider(scrapy.Spider):
                       '&query_understanding_enabled=true&refinement_paths%5B%5D=%2Fhomes&s_tag=QLb9RB7g'
                       '&satori_version=1.1.9&screen_height=797&screen_size=medium&screen_width=885'
                       '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
-                      '&timezone_offset=-240&version=1.5.6'
+                      '&timezone_offset=120&version=1.5.8'
                       '&items_offset={0}&section_offset={1}&price_min={2}&price_max={3}')
             new_url = new_url.format(items_offset, section_offset, self.price_lb, self.price_ub, self.city)
             
             if (int(self.price_lb) >= 990):
-                url = ('https://www.airbnb.com/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-                      '&allow_override%5B%5D=&auto_ib=false&client_session_id='
+                url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
+                      '&allow_override%5B%5D=&auto_ib=true&checkin=2019-09-20&checkout=2019-09-22&client_session_id='
                       '621cf853-d03e-4108-b717-c14962b6ab8b&currency=CAD&experiences_per_grid=20'
                       '&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
                       '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
@@ -169,7 +171,7 @@ class AirbnbSpider(scrapy.Spider):
                       '&query_understanding_enabled=true&refinement_paths%5B%5D=%2Fhomes&s_tag=QLb9RB7g'
                       '&satori_version=1.1.9&screen_height=797&screen_size=medium&screen_width=885'
                       '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
-                      '&timezone_offset=-240&version=1.5.6'
+                      '&timezone_offset=120&version=1.5.8'
                       '&items_offset={0}&section_offset={1}&price_min={2}')
                 new_url = url.format(items_offset, section_offset, self.price_lb, self.city)
             
