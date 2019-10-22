@@ -7,6 +7,7 @@ import logging
 import sys
 import scrapy
 from scrapy_splash import SplashRequest
+from scrapy.http import JSONRequest
 from scrapy.exceptions import CloseSpider
 from airbnb_scraper.items import AirbnbScraperItem
 
@@ -22,17 +23,24 @@ from airbnb_scraper.items import AirbnbScraperItem
 
 class AirbnbSpider(scrapy.Spider):
     name = 'airbnb'
-    allowed_domains = ['www.airbnb.com']
+    allowed_domains = ['www.airbnb.de']
 
     '''
     You don't have to override __init__ each time and can simply use self.parameter (See https://bit.ly/2Wxbkd9),
     but I find this way much more readable.
     '''
-    def __init__(self, city='',price_lb='', price_ub='', *args,**kwargs):
+    def __init__(self, city='',price_lb='', price_ub='', checkin='', checkout='', currency='',  *args,**kwargs):
         super(AirbnbSpider, self).__init__(*args, **kwargs)
+        self.checkout = checkout
+        self.checkin = checkin
+        self.currency = currency
+        # self.is_business = is_business # 
         self.city = city
         self.price_lb = price_lb
         self.price_ub = price_ub
+        
+        
+        
 
     def start_requests(self):
         '''Sends a scrapy request to the designated url price range
@@ -42,8 +50,8 @@ class AirbnbSpider(scrapy.Spider):
         '''
 
         url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-              '&allow_override%5B%5D=&auto_ib=true&checkin=2019-09-20&checkout=2019-09-22&client_session_id='
-              '621cf853-d03e-4108-b717-c14962b6ab8b&currency=EUR&experiences_per_grid=20&fetch_filters=true'
+              '&allow_override%5B%5D=&auto_ib=true&checkin={4}&checkout={5}&client_session_id='
+              '621cf853-d03e-4108-b717-c14962b6ab8b&currency={3}&experiences_per_grid=20&fetch_filters=true'
               '&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
               '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
               '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false&'
@@ -52,13 +60,13 @@ class AirbnbSpider(scrapy.Spider):
               '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
               '&timezone_offset=120&version=1.5.8'                  
               '&price_min={0}&price_max={1}')
-        new_url = url.format(self.price_lb, self.price_ub, self.city)
+        new_url = url.format(self.price_lb, self.price_ub, self.city, self.currency, self.checkin, self.checkout)
             
 
         if (int(self.price_lb)  >= 990):
             url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-              '&allow_override%5B%5D=&auto_ib=true&checkin=2019-09-20&checkout=2019-09-22&client_session_id='
-              '621cf853-d03e-4108-b717-c14962b6ab8b&currency=EUR&experiences_per_grid=20&fetch_filters=true'
+              '&allow_override%5B%5D=&auto_ib=true&checkin={3}&checkout={4}&client_session_id='
+              '621cf853-d03e-4108-b717-c14962b6ab8b&currency={2}&experiences_per_grid=20&fetch_filters=true'
               '&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
               '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
               '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false&'
@@ -69,7 +77,7 @@ class AirbnbSpider(scrapy.Spider):
               '&price_min={0}')
               
               
-            new_url = url.format(self.price_lb, self.city)
+            new_url = url.format(self.price_lb, self.city, self.currency, self.checkin, self.checkout)
 
         yield scrapy.Request(url=new_url, callback=self.parse_id, dont_filter=True)
 
@@ -86,18 +94,22 @@ class AirbnbSpider(scrapy.Spider):
         data = json.loads(response.body)
 
         # Return a List of all homes
-        homes = data.get('explore_tabs')[0].get('sections')[1].get('listings')
+        homes = data.get('explore_tabs')[0].get('sections')[0].get('listings')
+
 
         if homes is None:
             try: 
-                homes = data.get('explore_tabs')[0].get('sections')[3].get('listings')
+                homes = data.get('explore_tabs')[0].get('sections')[1].get('listings')
             except IndexError:
                 try: 
                     homes = data.get('explore_tabs')[0].get('sections')[2].get('listings')
-                except:
-                    raise CloseSpider("No homes available in the city and price parameters")
+                except IndexError:
+                    try: 
+                        homes = data.get('explore_tabs')[0].get('sections')[3].get('listings')
+                    except:
+                        raise CloseSpider("No homes available in the city and price parameters")
         
-        base_url = 'https://www.airbnb.com/rooms/'
+        base_url = 'https://www.airbnb.de/rooms/'
         data_dict = collections.defaultdict(dict) # Create Dictionary to put all currently available fields in
 
         for home in homes:
@@ -121,12 +133,19 @@ class AirbnbSpider(scrapy.Spider):
             data_dict[room_id]['picture_count'] = home.get('listing').get('picture_count')
             data_dict[room_id]['reviews_count'] = home.get('listing').get('reviews_count')
             data_dict[room_id]['room_type_category'] = home.get('listing').get('room_type_category')
+            data_dict[room_id]['room_and_property_type'] = home.get('listing').get('room_and_property_type')
+            data_dict[room_id]['property_type_id'] = home.get('listing').get('property_type_id')
             data_dict[room_id]['star_rating'] = home.get('listing').get('star_rating')
             data_dict[room_id]['host_id'] = home.get('listing').get('user').get('id')
             data_dict[room_id]['avg_rating'] = home.get('listing').get('avg_rating')
             data_dict[room_id]['can_instant_book'] = home.get('pricing_quote').get('can_instant_book')
             data_dict[room_id]['monthly_price_factor'] = home.get('pricing_quote').get('monthly_price_factor')
-            data_dict[room_id]['currency'] = home.get('pricing_quote').get('rate').get('currency')
+            data_dict[room_id]['currency'] = home.get('pricing_quote').get('rate').get('currency')            
+            data_dict[room_id]['price_item_0'] = home.get('pricing_quote').get('price').get('price_items')[0].get('localized_title')
+            data_dict[room_id]['amt_price_item_0'] = home.get('pricing_quote').get('price').get('price_items')[0].get('total').get('amount')
+            data_dict[room_id]['price_item_1'] = home.get('pricing_quote').get('price').get('price_items')[1].get('localized_title')
+            data_dict[room_id]['amt_price_item_1'] = home.get('pricing_quote').get('price').get('price_items')[1].get('total').get('amount')
+            data_dict[room_id]['price_items'] = home.get('pricing_quote').get('price').get('price_items')
             data_dict[room_id]['amt_w_service'] = home.get('pricing_quote').get('rate_with_service_fee').get('amount')
             data_dict[room_id]['rate_type'] = home.get('pricing_quote').get('rate_type')
             data_dict[room_id]['weekly_price_factor'] = home.get('pricing_quote').get('weekly_price_factor')
@@ -142,13 +161,14 @@ class AirbnbSpider(scrapy.Spider):
         # After scraping entire listings page, check if more pages
         pagination_metadata = data.get('explore_tabs')[0].get('pagination_metadata')
         if pagination_metadata.get('has_next_page'):
+            print ('has_next_page OK')
 
             items_offset = pagination_metadata.get('items_offset')
             section_offset = pagination_metadata.get('section_offset')
 
             new_url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-                      '&allow_override%5B%5D=&auto_ib=true&checkin=2019-09-20&checkout=2019-09-22&client_session_id='
-                      '621cf853-d03e-4108-b717-c14962b6ab8b&currency=EUR&experiences_per_grid=20'
+                      '&allow_override%5B%5D=&auto_ib=true&checkin={6}&checkout={7}&client_session_id='
+                      '621cf853-d03e-4108-b717-c14962b6ab8b&currency={5}&experiences_per_grid=20'
                       '&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
                       '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
                       '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false'
@@ -158,12 +178,12 @@ class AirbnbSpider(scrapy.Spider):
                       '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
                       '&timezone_offset=120&version=1.5.8'
                       '&items_offset={0}&section_offset={1}&price_min={2}&price_max={3}')
-            new_url = new_url.format(items_offset, section_offset, self.price_lb, self.price_ub, self.city)
+            new_url = new_url.format(items_offset, section_offset, self.price_lb, self.price_ub, self.city, self.currency, self.checkin, self.checkout)
             
             if (int(self.price_lb) >= 990):
                 url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-                      '&allow_override%5B%5D=&auto_ib=true&checkin=2019-09-20&checkout=2019-09-22&client_session_id='
-                      '621cf853-d03e-4108-b717-c14962b6ab8b&currency=CAD&experiences_per_grid=20'
+                      '&allow_override%5B%5D=&auto_ib=true&checkin={5}&checkout={6}&client_session_id='
+                      '621cf853-d03e-4108-b717-c14962b6ab8b&currency={4}&experiences_per_grid=20'
                       '&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
                       '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
                       '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false'
@@ -173,7 +193,7 @@ class AirbnbSpider(scrapy.Spider):
                       '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
                       '&timezone_offset=120&version=1.5.8'
                       '&items_offset={0}&section_offset={1}&price_min={2}')
-                new_url = url.format(items_offset, section_offset, self.price_lb, self.city)
+                new_url = url.format(items_offset, section_offset, self.price_lb, self.city, self.currency, self.checkin, self.checkout)
             
             # If there is a next page, update url and scrape from next page
             yield scrapy.Request(url=new_url, callback=self.parse_id)
@@ -208,15 +228,22 @@ class AirbnbSpider(scrapy.Spider):
         listing['picture_count'] = response.meta['picture_count']
         listing['reviews_count'] = response.meta['reviews_count']
         listing['room_type_category'] = response.meta['room_type_category']
+        listing['room_and_property_type'] = response.meta['room_and_property_type']        
+        listing['property_type_id'] = response.meta['property_type_id']        
         listing['star_rating'] = response.meta['star_rating']
         listing['avg_rating'] = response.meta['avg_rating']
         listing['can_instant_book'] = response.meta['can_instant_book']
         listing['monthly_price_factor'] = response.meta['monthly_price_factor']
         listing['weekly_price_factor'] = response.meta['weekly_price_factor']
         listing['currency'] = response.meta['currency']
+        listing['price_item_0'] = response.meta['price_item_0']
+        listing['amt_price_item_0'] = response.meta['amt_price_item_0']
+        listing['price_item_1'] = response.meta['price_item_1']
+        listing['amt_price_item_1'] = response.meta['amt_price_item_1']        
+        listing['price_items'] = response.meta['price_items']
         listing['amt_w_service'] = response.meta['amt_w_service']
         listing['rate_type'] = response.meta['rate_type']
-
+        
         # Other fields scraped from html response.text using regex (some might fail hence try/catch)
         try:
             listing['num_beds'] = int((re.search('"bed_label":"(.).*","bedroom_label"', response.text)).group(1))

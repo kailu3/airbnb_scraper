@@ -32,12 +32,19 @@ class AirbnbScraperItem(scrapy.Item):
     person_capacity = scrapy.Field()
     picture_count = scrapy.Field()
     reviews_count = scrapy.Field()
+    room_and_property_type = scrapy.Field()
     room_type_category = scrapy.Field()
+    property_type_id = scrapy.Field()
     star_rating = scrapy.Field() # Rounded to .5 or .0 Avg Rating
     avg_rating = scrapy.Field()
     can_instant_book = scrapy.Field()
     monthly_price_factor = scrapy.Field()
     currency = scrapy.Field()
+    price_item_0 = scrapy.Field()
+    amt_price_item_0 = scrapy.Field()
+    price_item_1 = scrapy.Field()
+    amt_price_item_1 = scrapy.Field()
+    price_items = scrapy.Field()
     amt_w_service = scrapy.Field()
     rate_type = scrapy.Field()
     weekly_price_factor = scrapy.Field()
@@ -54,6 +61,3 @@ class AirbnbScraperItem(scrapy.Item):
     host_reviews = scrapy.Field()
     response_rate = scrapy.Field()
     response_time = scrapy.Field()
-
-
-
