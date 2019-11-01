@@ -55,6 +55,8 @@ class AirbnbSpider(scrapy.Spider):
         
         url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&'
                '_set_bev_on_new_domain=1565902499_ug+hExThvhjjvWm4&allow_override[]=&auto_ib=true&'
+               #checkin and checkout added here
+               'checkin=2020-01-14&checkout=2020-01-17&'
                'client_session_id=c7798e46-033b-4d87-b742-79b11a1d412c&currency=EUR&current_tab_id=home_tab&'
                'experiences_per_grid=20&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&'
                'hide_dates_and_guests_filters=false&is_guided_search=true&is_new_cards_experiment=true&'
@@ -125,10 +127,12 @@ class AirbnbSpider(scrapy.Spider):
             data_dict[room_id]['room_type_category'] = home.get('listing').get('room_type_category')
             data_dict[room_id]['room_and_property_type'] = home.get('listing').get('room_and_property_type')
             data_dict[room_id]['property_type_id'] = home.get('listing').get('property_type_id')
+            data_dict[room_id]['price'] = home.get('pricing_quote').get('rate').get('amount')
             data_dict[room_id]['star_rating'] = home.get('listing').get('star_rating')
             data_dict[room_id]['host_id'] = home.get('listing').get('user').get('id')
             data_dict[room_id]['avg_rating'] = home.get('listing').get('avg_rating')
             data_dict[room_id]['can_instant_book'] = home.get('pricing_quote').get('can_instant_book')
+            data_dict[room_id]['amt_w_service'] = home.get('pricing_quote').get('rate_with_service_fee').get('amount')
             data_dict[room_id]['weekly_price_factor'] = home.get('pricing_quote').get('weekly_price_factor')
             data_dict[room_id]['monthly_price_factor'] = home.get('pricing_quote').get('monthly_price_factor')
             data_dict[room_id]['rate_type'] = home.get('pricing_quote').get('rate_type')
@@ -137,8 +141,8 @@ class AirbnbSpider(scrapy.Spider):
         # Iterate through dictionary of URLs in the single page to send a SplashRequest for each
         for room_id in data_dict:                              
             pgtd_data = {
-                'checkin_date': '2019-11-21',
-                'checkout_date': '2019-11-23',
+                'checkin_date': '2019-01-21',
+                'checkout_date': '2019-01-23',
                 'listing_id': room_id,
                 'num_adults': 1,
                 'num_children':	0,
@@ -156,6 +160,8 @@ class AirbnbSpider(scrapy.Spider):
 
             url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&'
                    '_set_bev_on_new_domain=1565902499_ug+hExThvhjjvWm4&allow_override[]=&auto_ib=true&'
+                   #checkin and checkout added here
+                   'checkin=2020-01-14&checkout=2020-01-17&'
                    'client_session_id=c7798e46-033b-4d87-b742-79b11a1d412c&currency=EUR&current_tab_id=home_tab&'
                    'experiences_per_grid=20&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&'
                    'hide_dates_and_guests_filters=false&is_guided_search=true&is_new_cards_experiment=true&'
@@ -222,7 +228,8 @@ class AirbnbSpider(scrapy.Spider):
         listing['lng'] = response.meta['lng']
         listing['room_type_category'] = response.meta['room_type_category']
         listing['room_and_property_type'] = response.meta['room_and_property_type']        
-        listing['property_type_id'] = response.meta['property_type_id']        
+        listing['property_type_id'] = response.meta['property_type_id']
+        listing['price'] = response.meta['price']
         listing['person_capacity'] = response.meta['person_capacity']        
         listing['bathrooms'] = response.meta['bathrooms']
         listing['bedrooms'] = response.meta['bedrooms']
@@ -237,6 +244,7 @@ class AirbnbSpider(scrapy.Spider):
         listing['reviews_count'] = response.meta['reviews_count']
         listing['star_rating'] = response.meta['star_rating']
         listing['avg_rating'] = response.meta['avg_rating']
+        listing['amt_w_service'] = response.meta['amt_w_service']
         
         # Other fields scraped from html response.text using regex (some might fail hence try/catch)
         try:
