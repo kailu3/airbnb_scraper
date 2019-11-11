@@ -26,10 +26,11 @@ class AirbnbSpider(scrapy.Spider):
     
     def start_requests(self):
 
-        f = open ('room-ids.txt', 'r')
+        f = open ('room-ids-all.txt', 'r')
         fl = f.readlines()
 
         for room_id in fl:
+            room_id = room_id.rstrip()
             url = ('https://www.airbnb.de/api/v2/homes_pdp_availability_calendar?currency=EUR&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=de&listing_id={0}&month=11&year=2019&count=12')
             url = url.format(room_id)
             yield scrapy.Request(url=url, callback=self.parse, meta={"room_id" : room_id})
@@ -42,27 +43,45 @@ class AirbnbSpider(scrapy.Spider):
        
         # Debugging response
         ## Write response to file
-        # filename = 'airbnb_av-debug.json'
-        # with open(filename, 'wb') as f:
-        #     f.write(response.body)
-        # self.log('Saved file %s' % filename)
+        #filename = 'airbnb_av-debug' + response.meta['room_id'] + '.json'
+        #with open(filename, 'wb') as f:
+        #    f.write(response.body)
+        #self.log('Saved file %s' % filename)
 
         months = data.get('calendar_months')
 
         listing = AirbnbScraperItem()
 
-        listing['room_id'] = response.meta['room_id'].rstrip()
+        listing['room_id'] = response.meta['room_id']
 
         for month in months:
-            days = month.get('days')
             days_count = 0
+            prices = []
+            days = month.get('days')
+            
             for day in days:
                 if day.get('available'):
                     days_count = days_count + 1
+                prices.append(float(day.get('price').get('local_price_formatted').replace("€","")))
+
             month_idx = month.get('month')
             month_name = calendar.month_name[month_idx]
-            #date = datetime.datetime(year, month, 1)
-            listing[month_name] = days_count
 
-        
-        yield listing
+            # prices = get('price')#.get('local_price_formatted').replace("€","")
+
+            # date = datetime.datetime(year, month, 1)
+            # listing[month_name + '_avail_days'] = days_count
+            # listing[month_name + '_count_price'] = int(len(prices))
+            # listing[month_name + '_avg_price'] = "{:5.2f}".format(sum(prices) / len(prices)).replace(".",",")
+            # listing[month_name + '_min_price'] = "{:5.2f}".format(min(prices)).replace(".",",")
+            # listing[month_name + '_max_price'] = "{:5.2f}".format(max(prices)).replace(".",",")
+            # listing[month_name + '_max_diff_price'] = "{:5.2f}".format(max(prices) - min(prices)).replace(".",",")
+
+            listing['month'] = month_name
+            listing['avail_days'] = days_count
+            listing['count_price'] = int(len(prices))
+            listing['avg_price'] = "{:5.2f}".format(sum(prices) / len(prices)).replace(".",",")
+            listing['min_price'] = "{:5.2f}".format(min(prices)).replace(".",",")
+            listing['max_price'] = "{:5.2f}".format(max(prices)).replace(".",",")
+            listing['max_diff_price'] = "{:5.2f}".format(max(prices) - min(prices)).replace(".",",")
+            yield listing
