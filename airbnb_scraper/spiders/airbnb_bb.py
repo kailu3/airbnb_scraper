@@ -7,9 +7,9 @@ import logging
 import sys
 import scrapy
 from scrapy_splash import SplashRequest
-from scrapy.http import JSONRequest
 from scrapy.exceptions import CloseSpider
-from airbnb_scraper.items import AirbnbScraperItem
+from scrapy.http import JSONRequest
+from airbnb_scraper.items_bb import AirbnbScraperItem
 
 
 # ********************************************************************************************
@@ -22,22 +22,20 @@ from airbnb_scraper.items import AirbnbScraperItem
 # *********************************************************************************************
 
 class AirbnbSpider(scrapy.Spider):
-    name = 'airbnb'
+    name = 'airbnb_bb'
     allowed_domains = ['www.airbnb.de']
 
     '''
     You don't have to override __init__ each time and can simply use self.parameter (See https://bit.ly/2Wxbkd9),
     but I find this way much more readable.
     '''
-    def __init__(self, city='',price_lb='', price_ub='', checkin='', checkout='', currency='',  *args,**kwargs):
+    def __init__(self, city='', ne_lat='', ne_lng='', sw_lat='', sw_lng='',  *args,**kwargs):
         super(AirbnbSpider, self).__init__(*args, **kwargs)
-        self.checkout = checkout
-        self.checkin = checkin
-        self.currency = currency
-        # self.is_business = is_business # 
-        self.city = city
-        self.price_lb = price_lb
-        self.price_ub = price_ub
+        self.ne_lat = ne_lat
+        self.ne_lng = ne_lng
+        self.sw_lat = sw_lat
+        self.sw_lng = sw_lng
+        
         
         
         
@@ -49,35 +47,28 @@ class AirbnbSpider(scrapy.Spider):
         Returns:
         '''
 
-        url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-              '&allow_override%5B%5D=&auto_ib=true&checkin={4}&checkout={5}&client_session_id='
-              '621cf853-d03e-4108-b717-c14962b6ab8b&currency={3}&experiences_per_grid=20&fetch_filters=true'
-              '&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
-              '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
-              '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false&'
-              'query={2}'
-              '&query_understanding_enabled=true&refinement_paths%5B%5D=%2Fhomes&s_tag=QLb9RB7g'
-              '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
-              '&timezone_offset=120&version=1.5.8'                  
-              '&price_min={0}&price_max={1}')
-        new_url = url.format(self.price_lb, self.price_ub, self.city, self.currency, self.checkin, self.checkout)
-            
-
-        if (int(self.price_lb)  >= 990):
-            url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-              '&allow_override%5B%5D=&auto_ib=true&checkin={3}&checkout={4}&client_session_id='
-              '621cf853-d03e-4108-b717-c14962b6ab8b&currency={2}&experiences_per_grid=20&fetch_filters=true'
-              '&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
-              '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
-              '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false&'
-              'query={1}'
-              '&query_understanding_enabled=true&refinement_paths%5B%5D=%2Fhomes&s_tag=QLb9RB7g'
-              '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
-              '&timezone_offset=120&version=1.5.8'                  
-              '&price_min={0}')
-              
-              
-            new_url = url.format(self.price_lb, self.city, self.currency, self.checkin, self.checkout)
+        # url = ('https://www.airbnb.de/s/Luxemburg/homes?refinement_paths[]=%2Fhomes&current_tab_id=home_tab&'
+        #       'selected_tab_id=home_tab&allow_override[]=&_set_bev_on_new_domain=1565902499_ug%2BhExThvhjjvWm4&'
+        #       'screen_size=large&search_type=unknown&'
+        #       'ne_lat={0}&ne_lng={1}&sw_lat=·{2}&sw_lng={3}&'
+        #       'zoom=10&search_by_map=false&hide_dates_and_guests_filters=false')
+        
+        url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&'
+               '_set_bev_on_new_domain=1565902499_ug+hExThvhjjvWm4&allow_override[]=&auto_ib=true&'
+               #checkin and checkout added here
+               'checkin=2020-01-14&checkout=2020-01-17&'
+               'client_session_id=c7798e46-033b-4d87-b742-79b11a1d412c&currency=EUR&current_tab_id=home_tab&'
+               'experiences_per_grid=20&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&'
+               'hide_dates_and_guests_filters=false&is_guided_search=true&is_new_cards_experiment=true&'
+               'is_standard_search=true&items_per_grid=18&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=de&'
+               'metadata_only=false&ne_lat={0}&ne_lng={1}&'
+               'place_id=ChIJRyEhyrlFlUcR75LTAvZg22Q&query=Luxemburg&'
+               'query_understanding_enabled=true&refinement_paths[]=/homes&satori_version=1.1.9&'
+               'screen_height=639&screen_size=large&screen_width=1366&search_by_map=false&search_type=filter_change&'
+               'selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true&'
+               'sw_lat={2}&sw_lng={3}&timezone_offset=120&version=1.6.2&zoom=10')
+                                            
+        new_url = url.format(self.ne_lat, self.ne_lng, self.sw_lat, self.sw_lng)
 
         yield scrapy.Request(url=new_url, callback=self.parse_id, dont_filter=True)
 
@@ -92,10 +83,9 @@ class AirbnbSpider(scrapy.Spider):
         
         # Fetch and Write the response data
         data = json.loads(response.body)
-
+        
         # Return a List of all homes
         homes = data.get('explore_tabs')[0].get('sections')[0].get('listings')
-
 
         if homes is None:
             try: 
@@ -110,13 +100,15 @@ class AirbnbSpider(scrapy.Spider):
                         raise CloseSpider("No homes available in the city and price parameters")
         
         base_url = 'https://www.airbnb.de/rooms/'
+        pgtd_url = 'https://www.airbnb.de/api/v2/paid_growth_tracking_datas?_format=for_p3&currency=EUR&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=de'
+
         data_dict = collections.defaultdict(dict) # Create Dictionary to put all currently available fields in
 
         for home in homes:
             room_id = str(home.get('listing').get('id'))
             url = base_url + str(home.get('listing').get('id'))
             data_dict[room_id]['url'] = url
-            data_dict[room_id]['price'] = home.get('pricing_quote').get('rate').get('amount')
+            data_dict[room_id]['room_id'] = room_id
             data_dict[room_id]['bathrooms'] = home.get('listing').get('bathrooms')
             data_dict[room_id]['bedrooms'] = home.get('listing').get('bedrooms')
             data_dict[room_id]['host_languages'] = home.get('listing').get('host_languages')
@@ -135,69 +127,76 @@ class AirbnbSpider(scrapy.Spider):
             data_dict[room_id]['room_type_category'] = home.get('listing').get('room_type_category')
             data_dict[room_id]['room_and_property_type'] = home.get('listing').get('room_and_property_type')
             data_dict[room_id]['property_type_id'] = home.get('listing').get('property_type_id')
+            data_dict[room_id]['price'] = home.get('pricing_quote').get('rate').get('amount')
             data_dict[room_id]['star_rating'] = home.get('listing').get('star_rating')
             data_dict[room_id]['host_id'] = home.get('listing').get('user').get('id')
             data_dict[room_id]['avg_rating'] = home.get('listing').get('avg_rating')
             data_dict[room_id]['can_instant_book'] = home.get('pricing_quote').get('can_instant_book')
-            data_dict[room_id]['monthly_price_factor'] = home.get('pricing_quote').get('monthly_price_factor')
-            data_dict[room_id]['currency'] = home.get('pricing_quote').get('rate').get('currency')            
-            data_dict[room_id]['price_item_0'] = home.get('pricing_quote').get('price').get('price_items')[0].get('localized_title')
-            data_dict[room_id]['amt_price_item_0'] = home.get('pricing_quote').get('price').get('price_items')[0].get('total').get('amount')
-            data_dict[room_id]['price_item_1'] = home.get('pricing_quote').get('price').get('price_items')[1].get('localized_title')
-            data_dict[room_id]['amt_price_item_1'] = home.get('pricing_quote').get('price').get('price_items')[1].get('total').get('amount')
-            data_dict[room_id]['price_items'] = home.get('pricing_quote').get('price').get('price_items')
             data_dict[room_id]['amt_w_service'] = home.get('pricing_quote').get('rate_with_service_fee').get('amount')
-            data_dict[room_id]['rate_type'] = home.get('pricing_quote').get('rate_type')
             data_dict[room_id]['weekly_price_factor'] = home.get('pricing_quote').get('weekly_price_factor')
+            data_dict[room_id]['monthly_price_factor'] = home.get('pricing_quote').get('monthly_price_factor')
+            data_dict[room_id]['rate_type'] = home.get('pricing_quote').get('rate_type')
 
 
         # Iterate through dictionary of URLs in the single page to send a SplashRequest for each
-        for room_id in data_dict:
-            yield SplashRequest(url=base_url+room_id, callback=self.parse_details,
-                                meta=data_dict.get(room_id),
-                                endpoint="render.html",
-                                args={'wait': '0.5'})
+        for room_id in data_dict:                              
+            pgtd_data = {
+                'checkin_date': '2019-01-21',
+                'checkout_date': '2019-01-23',
+                'listing_id': room_id,
+                'num_adults': 1,
+                'num_children':	0,
+                'num_infants': 0
+            }
+            yield JSONRequest(url=pgtd_url, data=pgtd_data, callback=self.parse_pgdt, meta=data_dict.get(room_id))
 
         # After scraping entire listings page, check if more pages
         pagination_metadata = data.get('explore_tabs')[0].get('pagination_metadata')
         if pagination_metadata.get('has_next_page'):
-            print ('has_next_page OK')
+            print ('has_next_page = true')
 
             items_offset = pagination_metadata.get('items_offset')
             section_offset = pagination_metadata.get('section_offset')
 
-            new_url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-                      '&allow_override%5B%5D=&auto_ib=true&checkin={6}&checkout={7}&client_session_id='
-                      '621cf853-d03e-4108-b717-c14962b6ab8b&currency={5}&experiences_per_grid=20'
-                      '&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
-                      '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
-                      '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false'
-                      '&query={4}'
-                      '&query_understanding_enabled=true&refinement_paths%5B%5D=%2Fhomes&s_tag=QLb9RB7g'
-                      '&satori_version=1.1.9&screen_height=797&screen_size=medium&screen_width=885'
-                      '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
-                      '&timezone_offset=120&version=1.5.8'
-                      '&items_offset={0}&section_offset={1}&price_min={2}&price_max={3}')
-            new_url = new_url.format(items_offset, section_offset, self.price_lb, self.price_ub, self.city, self.currency, self.checkin, self.checkout)
-            
-            if (int(self.price_lb) >= 990):
-                url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&_intents=p1'
-                      '&allow_override%5B%5D=&auto_ib=true&checkin={5}&checkout={6}&client_session_id='
-                      '621cf853-d03e-4108-b717-c14962b6ab8b&currency={4}&experiences_per_grid=20'
-                      '&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&is_guided_search=true'
-                      '&is_new_cards_experiment=true&is_standard_search=true&items_per_grid=18'
-                      '&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=en&luxury_pre_launch=false&metadata_only=false'
-                      '&query={3}'
-                      '&query_understanding_enabled=true&refinement_paths%5B%5D=%2Fhomes&s_tag=QLb9RB7g'
-                      '&satori_version=1.1.9&screen_height=797&screen_size=medium&screen_width=885'
-                      '&search_type=FILTER_CHANGE&selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true'
-                      '&timezone_offset=120&version=1.5.8'
-                      '&items_offset={0}&section_offset={1}&price_min={2}')
-                new_url = url.format(items_offset, section_offset, self.price_lb, self.city, self.currency, self.checkin, self.checkout)
+            url = ('https://www.airbnb.de/api/v2/explore_tabs?_format=for_explore_search_web&'
+                   '_set_bev_on_new_domain=1565902499_ug+hExThvhjjvWm4&allow_override[]=&auto_ib=true&'
+                   #checkin and checkout added here
+                   'checkin=2020-01-14&checkout=2020-01-17&'
+                   'client_session_id=c7798e46-033b-4d87-b742-79b11a1d412c&currency=EUR&current_tab_id=home_tab&'
+                   'experiences_per_grid=20&fetch_filters=true&guidebooks_per_grid=20&has_zero_guest_treatment=true&'
+                   'hide_dates_and_guests_filters=false&is_guided_search=true&is_new_cards_experiment=true&'
+                   'is_standard_search=true&items_per_grid=18&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&locale=de&'
+                   'metadata_only=false&ne_lat={0}&ne_lng={1}&'
+                   'place_id=ChIJRyEhyrlFlUcR75LTAvZg22Q&query=Luxemburg&'
+                   'query_understanding_enabled=true&refinement_paths[]=/homes&satori_version=1.1.9&'
+                   'screen_height=639&screen_size=large&screen_width=1366&search_by_map=false&search_type=filter_change&'
+                   'selected_tab_id=home_tab&show_groupings=true&supports_for_you_v3=true&'
+                   'sw_lat={2}&sw_lng={3}&timezone_offset=120&version=1.6.2&zoom=10&items_offset={4}&section_offset={5}')
+               
+            new_url = url.format(self.ne_lat, self.ne_lng, self.sw_lat, self.sw_lng, items_offset, section_offset)
             
             # If there is a next page, update url and scrape from next page
             yield scrapy.Request(url=new_url, callback=self.parse_id)
 
+    def parse_pgdt(self, response):
+        '''Parses city, state and country from https://www.airbnb.de/api/v2/paid_growth_tracking_datas
+        '''
+        
+        base_url = 'https://www.airbnb.de/rooms/'
+        
+        # Fetch and Write the response data
+        data = json.loads(response.body)        
+        
+        response.meta['city'] = data.get('paid_growth_tracking_data').get('city')
+        response.meta['country'] = data.get('paid_growth_tracking_data').get('country')
+        response.meta['state'] = data.get('paid_growth_tracking_data').get('state')
+        
+        yield SplashRequest(url=base_url+response.meta['room_id'], callback=self.parse_details,
+                    meta=response.meta,
+                    endpoint="render.html",
+                    args={'wait': '0.5'})
+        
+        
     def parse_details(self, response):
         '''Parses details for a single listing page and stores into AirbnbScraperItem object
 
@@ -206,43 +205,46 @@ class AirbnbSpider(scrapy.Spider):
         Returns:
             An AirbnbScraperItem object containing the set of fields pertaining to the listing
         '''
+        
+        seperator = ', '
+        
         # New Instance
-        listing = AirbnbScraperItem()
-
+        listing = AirbnbScraperItem()        
+        
         # Fill in fields for Instance from initial scrapy call
+        listing['room_id'] = str(response.meta['room_id'])
+        listing['url'] = response.meta['url']
+        listing['listing_name'] = response.meta['listing_name']        
         listing['is_superhost'] = response.meta['is_superhost']
         listing['host_id'] = str(response.meta['host_id'])
+        listing['host_languages'] = seperator.join(response.meta['host_languages'])        
+        # Fill in fields for Instance from paid_growth_tracking_datas (pgtd) scrapy call
+        listing['city'] = response.meta['city']
+        listing['localized_city'] = response.meta['localized_city']
+        listing['localized_neighborhood'] = response.meta['localized_neighborhood']        
+        listing['country'] = response.meta['country']
+        listing['state'] = response.meta['state']
+        listing['lat'] = response.meta['lat']
+        listing['lng'] = response.meta['lng']
+        listing['room_type_category'] = response.meta['room_type_category']
+        listing['room_and_property_type'] = response.meta['room_and_property_type']        
+        listing['property_type_id'] = response.meta['property_type_id']
         listing['price'] = response.meta['price']
-        listing['url'] = response.meta['url']
+        listing['person_capacity'] = response.meta['person_capacity']        
         listing['bathrooms'] = response.meta['bathrooms']
         listing['bedrooms'] = response.meta['bedrooms']
         listing['is_business_travel_ready'] = response.meta['is_business_travel_ready']
+        listing['rate_type'] = response.meta['rate_type']
         listing['is_fully_refundable'] = response.meta['is_fully_refundable']
-        listing['is_new_listing'] = response.meta['is_new_listing']
-        listing['lat'] = response.meta['lat']
-        listing['lng'] = response.meta['lng']
-        listing['localized_city'] = response.meta['localized_city']
-        listing['localized_neighborhood'] = response.meta['localized_neighborhood']
-        listing['listing_name'] = response.meta['listing_name']
-        listing['person_capacity'] = response.meta['person_capacity']
-        listing['picture_count'] = response.meta['picture_count']
-        listing['reviews_count'] = response.meta['reviews_count']
-        listing['room_type_category'] = response.meta['room_type_category']
-        listing['room_and_property_type'] = response.meta['room_and_property_type']        
-        listing['property_type_id'] = response.meta['property_type_id']        
-        listing['star_rating'] = response.meta['star_rating']
-        listing['avg_rating'] = response.meta['avg_rating']
         listing['can_instant_book'] = response.meta['can_instant_book']
         listing['monthly_price_factor'] = response.meta['monthly_price_factor']
         listing['weekly_price_factor'] = response.meta['weekly_price_factor']
-        listing['currency'] = response.meta['currency']
-        listing['price_item_0'] = response.meta['price_item_0']
-        listing['amt_price_item_0'] = response.meta['amt_price_item_0']
-        listing['price_item_1'] = response.meta['price_item_1']
-        listing['amt_price_item_1'] = response.meta['amt_price_item_1']        
-        listing['price_items'] = response.meta['price_items']
+        listing['is_new_listing'] = response.meta['is_new_listing']
+        listing['picture_count'] = response.meta['picture_count']
+        listing['reviews_count'] = response.meta['reviews_count']
+        listing['star_rating'] = response.meta['star_rating']
+        listing['avg_rating'] = response.meta['avg_rating']
         listing['amt_w_service'] = response.meta['amt_w_service']
-        listing['rate_type'] = response.meta['rate_type']
         
         # Other fields scraped from html response.text using regex (some might fail hence try/catch)
         try:
@@ -282,6 +284,7 @@ class AirbnbSpider(scrapy.Spider):
         except:
             listing['response_rate'] = 0
             listing['response_time'] = ''
-
+        
         # Finally return the object
         yield listing
+        
